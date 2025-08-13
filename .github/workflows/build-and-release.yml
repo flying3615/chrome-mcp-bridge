@@ -1,0 +1,79 @@
+name: Build and Release Chrome Extension
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      ext_version: ${{ steps.read_version.outputs.ext_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install and build extension
+        run: |
+          cd extension
+          npm ci
+          npm run build
+          cd ..
+
+      - name: Install and build MCP server
+        run: |
+          cd mcp
+          npm ci
+          npm run build
+          cd ..
+
+      - name: Read extension version
+        id: read_version
+        run: echo "ext_version=$(node -e \"console.log(JSON.parse(require('fs').readFileSync('extension/manifest.json','utf8')).version)\")" >> $GITHUB_OUTPUT
+
+      - name: Package Chrome extension
+        run: |
+          cd extension
+          zip -r ../chrome-extension.zip manifest.json dist
+          cd ..
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension
+          path: chrome-extension.zip
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: chrome-extension
+          path: .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.build.outputs.ext_version }}
+          name: Release v${{ needs.build.outputs.ext_version }}
+          draft: false
+          prerelease: false
+          files: |
+            chrome-extension.zip
+
+
