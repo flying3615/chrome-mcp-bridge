@@ -39,7 +39,10 @@ jobs:
 
       - name: Read extension version
         id: read_version
-        run: echo "ext_version=$(node -e \"console.log(JSON.parse(require('fs').readFileSync('extension/manifest.json','utf8')).version)\")" >> $GITHUB_OUTPUT
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./extension/manifest.json').version")
+          echo "ext_version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Package Chrome extension
         run: |
