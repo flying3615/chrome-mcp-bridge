@@ -13,6 +13,10 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; connect-src ws://localhost:3001 https://* http://*;"
   },
+  "action": {
+    "default_title": "MCP Bridge",
+    "default_popup": "popup.html"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

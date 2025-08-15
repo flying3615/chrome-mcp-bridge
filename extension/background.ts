@@ -4,6 +4,41 @@ let websocket: WebSocket | null = null;
 let retryCount = 0;
 const maxRetryCount = 8;
 
+async function setActionIcon(color: string) {
+  const sizes = [16, 32] as const;
+  const imageDataMap: Record<number, ImageData> = {} as any;
+  for (const s of sizes) {
+    const canvas = new OffscreenCanvas(s, s);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) continue;
+    ctx.clearRect(0, 0, s, s);
+    // background transparent
+    // draw outer subtle ring for contrast
+    ctx.beginPath();
+    ctx.arc(s / 2, s / 2, s * 0.42, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = 0.9;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // draw inner colored dot
+    ctx.beginPath();
+    ctx.arc(s / 2, s / 2, s * 0.34, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    imageDataMap[s] = ctx.getImageData(0, 0, s, s);
+  }
+  try {
+    await chrome.action.setIcon({ imageData: imageDataMap as any });
+  } catch (_) {
+    // ignore
+  }
+}
+
+function setWsStateIcon(state: 'OPEN' | 'CONNECTING' | 'CLOSED') {
+  const color = state === 'OPEN' ? '#16a34a' : state === 'CONNECTING' ? '#f59e0b' : '#dc2626';
+  void setActionIcon(color);
+}
+
 function log(...args: unknown[]) {
   try { console.log('[mcp-ext]', ...args); } catch (_) {}
 }
@@ -91,6 +126,7 @@ const handlers: Record<string, (payload: any) => Promise<any>> = {
     }
   },
 
+
   // Bookmarks
   async 'bookmarks.create'(payload) {
     const { parentId, title, url } = payload || {};
@@ -125,6 +161,8 @@ const handlers: Record<string, (payload: any) => Promise<any>> = {
     await chrome.history.deleteUrl({ url });
     return { ok: true };
   },
+
+  // Extension utils placeholder to avoid duplicate keys; runtime.reload is handled via popup/WS
 };
 
 function scheduleReconnect() {
@@ -135,11 +173,12 @@ function scheduleReconnect() {
 
 function connect() {
   try {
+    setWsStateIcon('CONNECTING');
     if (websocket && (websocket.readyState === WebSocket.OPEN || websocket.readyState === WebSocket.CONNECTING)) return;
     websocket = new WebSocket(WS_URL);
-    websocket.onopen = () => { retryCount = 0; log('ws open'); };
-    websocket.onclose = () => { log('ws close'); scheduleReconnect(); };
-    websocket.onerror = (e: Event | any) => { log('ws error', (e as any)?.message || e); try { websocket?.close(); } catch (_) {} };
+    websocket.onopen = () => { retryCount = 0; log('ws open'); setWsStateIcon('OPEN'); };
+    websocket.onclose = () => { log('ws close'); setWsStateIcon('CLOSED'); scheduleReconnect(); };
+    websocket.onerror = (e: Event | any) => { log('ws error', (e as any)?.message || e); setWsStateIcon('CLOSED'); try { websocket?.close(); } catch (_) {} };
     websocket.onmessage = async (ev: MessageEvent) => {
       let msg: any;
       try { msg = JSON.parse(String((ev as any).data)); } catch (_) { return; }
@@ -162,5 +201,29 @@ function connect() {
 
 chrome.runtime.onInstalled.addListener(connect);
 chrome.runtime.onStartup.addListener(connect);
+
+// Handle popup messaging
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  (async () => {
+    try {
+      if (msg?.type === 'ws.status') {
+        const state = websocket?.readyState === WebSocket.OPEN ? 'OPEN' : (websocket?.readyState === WebSocket.CONNECTING ? 'CONNECTING' : 'CLOSED');
+        return sendResponse({ state, url: WS_URL });
+      }
+      if (msg?.type === 'ws.reconnect') {
+        try { websocket?.close(); } catch {}
+        setTimeout(connect, 50);
+        return sendResponse({ ok: true });
+      }
+      if (msg?.type === 'extension.reload') {
+        chrome.runtime.reload();
+        return sendResponse({ ok: true });
+      }
+    } catch (e: any) {
+      return sendResponse({ ok: false, error: String(e?.message || e) });
+    }
+  })();
+  return true;
+});
 
 

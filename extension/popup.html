@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MCP Bridge</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background: Canvas;
+        color: CanvasText;
+      }
+      .card {
+        width: 260px;
+        padding: 12px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .header { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+      .dot {
+        width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-top: 1px;
+      }
+      .dot.ok { background: #16a34a; }
+      .dot.warn { background: #f59e0b; }
+      .dot.err { background: #dc2626; }
+      .actions { display: flex; gap: 8px; }
+      .btn {
+        flex: 1;
+        height: 32px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #fff;
+        color: #111827;
+        cursor: pointer;
+      }
+      .btn:hover { background: #f3f4f6; }
+      .muted { color: #6b7280; font-size: 12px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      .ws { display: flex; gap: 6px; align-items: center; }
+      .label { font-size: 11px; padding: 2px 6px; border: 1px solid #e5e7eb; border-radius: 9999px; color: #6b7280; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <span id="wsDot" class="dot warn"></span>
+        <span id="wsText">Unknown</span>
+      </div>
+      <div class="actions">
+        <button id="btnReconnect" class="btn">Reconnect</button>
+      </div>
+      <div class="ws muted">
+        <span class="label">WS</span>
+        <span id="wsUrl" class="mono"></span>
+      </div>
+    </div>
+    <script src="dist/popup.js"></script>
+  </body>
+  </html>
+
+

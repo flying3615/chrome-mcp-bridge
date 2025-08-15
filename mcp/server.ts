@@ -262,6 +262,19 @@ server.addTool({
   },
 });
 
+// Extension utils
+server.addTool({
+  name: "extension.reload",
+  description: "重载扩展（触发 runtime.reload()）",
+  parameters: z.object({}),
+  execute: async () => {
+    // Use runtime message path handled by background onMessage
+    const resp = await sendToExtension({ type: "extension.reload", payload: {} });
+    if (resp.ok === false) throw new Error(resp.error || "extension.reload_failed");
+    return `extension.reload ok`;
+  },
+});
+
 await server.start({ transportType: "stdio" });
 console.error(`FastMCP server started. Waiting for extension on ws://localhost:${PORT}`);
 
