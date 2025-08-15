@@ -220,6 +220,23 @@ server.addTool({
   },
 });
 
+// Screenshot
+server.addTool({
+  name: "page.screenshot",
+  description: "对当前/指定标签页截图，返回 dataURL（png/jpeg）",
+  parameters: z.object({
+    tabId: z.number().nullable().optional(),
+    format: z.enum(["png", "jpeg"]).optional(),
+    quality: z.number().min(0).max(100).optional(),
+    bringToFront: z.boolean().optional(),
+  }),
+  execute: async ({ tabId, format = "png", quality = 90, bringToFront = true }) => {
+    const resp = await sendToExtension({ type: "page.screenshot", payload: { tabId, format, quality, bringToFront } }, 20000);
+    if (resp.ok === false) throw new Error(resp.error || "page.screenshot_failed");
+    return resp.result; // { dataUrl, format }
+  },
+});
+
 // Bookmarks tools
 server.addTool({
   name: "bookmarks.create",

@@ -163,6 +163,20 @@ const handlers: Record<string, (payload: any) => Promise<any>> = {
   },
 
   // Extension utils placeholder to avoid duplicate keys; runtime.reload is handled via popup/WS
+  async 'page.screenshot'(payload) {
+    const { tabId, format = 'png', quality = 90, bringToFront = true } = payload || {};
+    let targetTabId = await getActiveTabId(tabId);
+    if (!targetTabId) throw new Error('no_active_tab');
+    const tab = await chrome.tabs.get(targetTabId);
+    const windowId = tab.windowId;
+    if (bringToFront) {
+      try { await chrome.windows.update(windowId, { focused: true }); } catch {}
+      try { await chrome.tabs.update(targetTabId, { active: true }); } catch {}
+      await new Promise(r => setTimeout(r, 120));
+    }
+    const dataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: (format as any), quality });
+    return { dataUrl, format };
+  },
 };
 
 function scheduleReconnect() {
