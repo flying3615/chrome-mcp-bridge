@@ -141,6 +141,24 @@ const handlers: Record<string, (payload: any) => Promise<any>> = {
     return results.map((n) => ({ id: n.id, parentId: n.parentId, title: n.title, url: (n as any).url ?? null }));
   },
 
+  async 'bookmarks.list'(payload) {
+    const { parentId, recursive = false, recent = false, maxResults = 50 } = payload || {};
+    if (recent) {
+      const rec = await chrome.bookmarks.getRecent(Math.max(1, Math.min(100, maxResults)));
+      return rec.map((n) => ({ id: n.id, parentId: n.parentId, title: n.title, url: (n as any).url ?? null, dateAdded: n.dateAdded }));
+    }
+    if (recursive && parentId) {
+      const sub = await chrome.bookmarks.getSubTree(parentId);
+      return sub; // keep tree structure
+    }
+    if (parentId) {
+      const children = await chrome.bookmarks.getChildren(parentId);
+      return children.map((n) => ({ id: n.id, parentId: n.parentId, title: n.title, url: (n as any).url ?? null, dateAdded: n.dateAdded }));
+    }
+    const tree = await chrome.bookmarks.getTree();
+    return tree; // full tree
+  },
+
   async 'bookmarks.remove'(payload) {
     const { id } = payload || {};
     if (!id) throw new Error('invalid_args');

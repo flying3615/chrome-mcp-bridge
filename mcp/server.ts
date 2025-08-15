@@ -309,6 +309,22 @@ server.addTool({
   },
 });
 
+server.addTool({
+  name: "bookmarks.list",
+  description: "查看书签：支持 recent/getTree/getChildren/getSubTree 等模式",
+  parameters: z.object({
+    parentId: z.string().optional(),
+    recursive: z.boolean().optional(),
+    recent: z.boolean().optional(),
+    maxResults: z.number().optional(),
+  }),
+  execute: async ({ parentId, recursive = false, recent = false, maxResults = 50 }) => {
+    const resp = await sendToExtension({ type: "bookmarks.list", payload: { parentId, recursive, recent, maxResults } }, 20000);
+    if (resp.ok === false) throw new Error(resp.error || "bookmarks.list_failed");
+    return resp.result;
+  },
+});
+
 // History tools
 server.addTool({
   name: "history.search",
