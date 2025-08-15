@@ -31,6 +31,15 @@ ws.on("message", (raw: RawData) => {
   });
 });
 
+// Heartbeat: periodically notify extensions to help them correct UI state
+const HEARTBEAT_MS = 15000;
+setInterval(() => {
+  const payload = JSON.stringify({ type: "heartbeat", ts: Date.now() });
+  for (const ws of wsClients) {
+    try { ws.send(payload); } catch {}
+  }
+}, HEARTBEAT_MS);
+
 function sendToExtension(packet: any, timeoutMs = 15000): Promise<any> {
   return new Promise((resolve, reject) => {
     if (wsClients.size === 0) return reject(new Error("no_extension_connected"));

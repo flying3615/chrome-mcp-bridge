@@ -237,6 +237,7 @@ function connect() {
       try { msg = JSON.parse(String((ev as any).data)); } catch (_) { return; }
       const { id, type, payload } = msg || {};
       if (!type) return;
+      if (type === 'heartbeat') { setWsStateIcon('OPEN'); return; }
       const handler = handlers[type];
       if (!handler) return void sendWs({ id, ok: false, error: `unknown_type:${type}` });
       try {
