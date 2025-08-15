@@ -1,17 +1,39 @@
 {
-  "name": "mcp",
+  "name": "chrome-mcp-bridge",
   "version": "1.0.0",
+  "description": "Chrome <-> MCP bridge server (FastMCP) to control the browser via a Chrome extension",
   "main": "dist/server.js",
   "type": "module",
+  "bin": {
+    "chrome-mcp-bridge": "dist/server.js"
+  },
   "scripts": {
     "build": "tsc -p .",
     "start": "npm run build && node ./dist/server.js",
-    "dev": "MCP_BRIDGE_PORT=3001 npm run build && fastmcp inspect dist/server.js"
+    "dev": "MCP_BRIDGE_PORT=3001 npm run build && fastmcp inspect dist/server.js",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": [],
+  "keywords": ["mcp", "chrome", "extension", "automation", "fastmcp"],
   "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flying3615/chrome-mcp-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/flying3615/chrome-mcp-bridge/issues"
+  },
+  "homepage": "https://github.com/flying3615/chrome-mcp-bridge#readme",
+  "files": [
+    "dist/**"
+  ],
+  "engines": {
+    "node": ">=18.19.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.2",
     "fastmcp": "^3.14.4",

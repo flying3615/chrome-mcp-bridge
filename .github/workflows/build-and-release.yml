@@ -79,4 +79,9 @@ jobs:
           files: |
             chrome-extension.zip
 
+      - name: Create npm tag for MCP package (optional)
+        run: |
+          git tag -a mcp-v${{ needs.build.outputs.ext_version }} -m "mcp version ${{ needs.build.outputs.ext_version }}" || true
+          git push origin mcp-v${{ needs.build.outputs.ext_version }} || true
+
 

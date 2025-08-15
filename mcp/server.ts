@@ -233,7 +233,17 @@ server.addTool({
   execute: async ({ tabId, format = "png", quality = 90, bringToFront = true }) => {
     const resp = await sendToExtension({ type: "page.screenshot", payload: { tabId, format, quality, bringToFront } }, 20000);
     if (resp.ok === false) throw new Error(resp.error || "page.screenshot_failed");
-    return resp.result; // { dataUrl, format }
+    const dataUrl: string | undefined = resp.result?.dataUrl;
+    if (!dataUrl || typeof dataUrl !== 'string') throw new Error('no_image');
+    // data:image/png;base64,XXXX
+    const match = dataUrl.match(/^data:(.+?);base64,(.*)$/);
+    if (!match) {
+      // Fallback: return as text
+      return { content: [{ type: 'text', text: dataUrl }] } as any;
+    }
+    const mimeType = match[1] || (format === 'jpeg' ? 'image/jpeg' : 'image/png');
+    const base64 = match[2] || '';
+    return { content: [{ type: 'image', data: base64, mimeType }] } as any;
   },
 });
 
