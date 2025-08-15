@@ -330,7 +330,8 @@ server.addTool({
   execute: async ({ parentId, recursive = false, recent = false, maxResults = 50 }) => {
     const resp = await sendToExtension({ type: "bookmarks.list", payload: { parentId, recursive, recent, maxResults } }, 20000);
     if (resp.ok === false) throw new Error(resp.error || "bookmarks.list_failed");
-    return resp.result;
+    // FastMCP tool return should be content or string; avoid returning arrays directly
+    return JSON.stringify(resp.result ?? null);
   },
 });
 
