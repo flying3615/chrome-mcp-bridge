@@ -1,6 +1,6 @@
 {
-  "name": "chrome-mcp-bridge",
-  "version": "1.0.0",
+  "name": "@gabriel3615/chrome-mcp-bridge",
+  "version": "1.0.1",
   "description": "Chrome <-> MCP bridge server (FastMCP) to control the browser via a Chrome extension",
   "main": "dist/server.js",
   "type": "module",
