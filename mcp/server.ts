@@ -40,21 +40,46 @@ setInterval(() => {
   }
 }, HEARTBEAT_MS);
 
-function sendToExtension(packet: any, timeoutMs = 15000): Promise<any> {
+function waitForClient(timeoutMs = 3000): Promise<void> {
+  if (wsClients.size > 0) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    if (wsClients.size === 0) return reject(new Error("no_extension_connected"));
+    let timer: NodeJS.Timeout | null = null;
+    const onConn = () => {
+      if (timer) clearTimeout(timer);
+      wss.off('connection', onConn);
+      resolve();
+    };
+    wss.on('connection', onConn);
+    timer = setTimeout(() => {
+      wss.off('connection', onConn);
+      reject(new Error('no_extension_connected'));
+    }, Math.max(1, timeoutMs));
+  });
+}
+
+function sendToExtension(packet: any, timeoutMs = 15000): Promise<any> {
+  const doSend = (resolve: (v: any) => void, reject: (e: any) => void) => {
     const id = packet.id || uuidv4();
     const wrapped = { ...packet, id };
     for (const ws of wsClients) {
-      try {
-        ws.send(JSON.stringify(wrapped));
-      } catch {}
+      try { ws.send(JSON.stringify(wrapped)); } catch {}
     }
     const timeout = setTimeout(() => {
       pending.delete(id);
-      reject(new Error("timeout"));
+      reject(new Error('timeout'));
     }, timeoutMs);
     pending.set(id, { resolve, reject, timeout });
+  };
+
+  return new Promise((resolve, reject) => {
+    if (wsClients.size === 0) {
+      // Wait briefly for auto-reconnect, then send or fail fast
+      waitForClient(Math.min(3000, Math.max(1000, Math.floor(timeoutMs / 2))))
+        .then(() => doSend(resolve, reject))
+        .catch(() => reject(new Error('no_extension_connected')));
+      return;
+    }
+    doSend(resolve, reject);
   });
 }
 
