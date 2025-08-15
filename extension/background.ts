@@ -240,4 +240,20 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true;
 });
 
+// Health check: wake up periodically to correct icon and reconnect if needed
+chrome.alarms.create('ws-health', { periodInMinutes: 1 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== 'ws-health') return;
+  const state = websocket?.readyState === WebSocket.OPEN ? 'OPEN' : (websocket?.readyState === WebSocket.CONNECTING ? 'CONNECTING' : 'CLOSED');
+  setWsStateIcon(state as any);
+  if (state !== 'OPEN') connect();
+});
+
+// Clicking the action can also trigger a reconnect + status correction
+chrome.action.onClicked.addListener(() => {
+  const state = websocket?.readyState === WebSocket.OPEN ? 'OPEN' : (websocket?.readyState === WebSocket.CONNECTING ? 'CONNECTING' : 'CLOSED');
+  setWsStateIcon(state as any);
+  if (state !== 'OPEN') connect();
+});
+
 

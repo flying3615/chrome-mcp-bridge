@@ -3,7 +3,7 @@
   "name": "MCP Browser Controller",
   "version": "0.1.0",
   "description": "Control the browser via MCP over WebSocket.",
-  "permissions": ["tabs", "scripting", "activeTab", "bookmarks", "history"],
+  "permissions": ["tabs", "scripting", "activeTab", "bookmarks", "history", "alarms"],
   "host_permissions": [
     "<all_urls>"
   ],
