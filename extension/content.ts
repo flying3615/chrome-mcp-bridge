@@ -28,6 +28,14 @@
             window.scrollTo({ top: msg.top ?? 0, left: msg.left ?? 0, behavior: msg.smooth ? 'smooth' : 'auto' });
             return sendResponse({ ok: true });
           }
+          case 'page.metrics': {
+            const dpr = window.devicePixelRatio || 1;
+            const totalHeight = Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0);
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+            const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+            return sendResponse({ ok: true, dpr, totalHeight, viewportHeight, viewportWidth, scrollY });
+          }
           case 'dom.queryAll': {
             const selector: string = msg.selector || '*';
             const limit: number = typeof msg.limit === 'number' ? msg.limit : 50;

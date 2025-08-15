@@ -247,6 +247,30 @@ server.addTool({
   },
 });
 
+server.addTool({
+  name: "page.fullScreenshot",
+  description: "整页截图：分段滚动并返回分片数组（客户端可拼接）",
+  parameters: z.object({
+    tabId: z.number().nullable().optional(),
+    format: z.enum(["png", "jpeg"]).optional(),
+    quality: z.number().min(0).max(100).optional(),
+    step: z.number().min(0.2).max(1).optional(),
+  }),
+  execute: async ({ tabId, format = "png", quality = 90, step = 0.8 }) => {
+    const resp = await sendToExtension({ type: "page.fullScreenshot", payload: { tabId, format, quality, step } }, 60000);
+    if (resp.ok === false) throw new Error(resp.error || "page.fullScreenshot_failed");
+    const parts: string[] = Array.isArray(resp.result?.parts) ? resp.result.parts : [];
+    if (parts.length === 0) throw new Error('no_image_parts');
+    // 转为 MCP 内容数组（多张）
+    const contents = parts.map((dataUrl: string) => {
+      const m = dataUrl.match(/^data:(.+?);base64,(.*)$/);
+      if (!m) return { type: 'text', text: dataUrl } as const;
+      return { type: 'image', data: m[2], mimeType: m[1] } as const;
+    });
+    return { content: contents as any };
+  },
+});
+
 // Bookmarks tools
 server.addTool({
   name: "bookmarks.create",

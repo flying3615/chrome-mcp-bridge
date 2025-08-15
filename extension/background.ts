@@ -177,6 +177,27 @@ const handlers: Record<string, (payload: any) => Promise<any>> = {
     const dataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: (format as any), quality });
     return { dataUrl, format };
   },
+
+  async 'page.fullScreenshot'(payload) {
+    const { tabId, format = 'png', quality = 90, step = 0.8 } = payload || {};
+    let targetTabId = await getActiveTabId(tabId);
+    if (!targetTabId) throw new Error('no_active_tab');
+    const metrics = await chrome.tabs.sendMessage(targetTabId, { from: 'bg', type: 'page.metrics' });
+    const parts: string[] = [];
+    const total = metrics?.totalHeight || 0;
+    const vh = metrics?.viewportHeight || 0;
+    const windowId = (await chrome.tabs.get(targetTabId)).windowId;
+    let y = 0;
+    const dy = Math.max(1, Math.floor(vh * (typeof step === 'number' ? step : 0.8)));
+    while (y < total) {
+      await chrome.tabs.sendMessage(targetTabId, { from: 'bg', type: 'dom.scrollTo', top: y, left: 0, smooth: false });
+      await new Promise(r => setTimeout(r, 150));
+      const dataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: (format as any), quality });
+      parts.push(dataUrl);
+      y += dy;
+    }
+    return { parts, format, viewportHeight: vh, totalHeight: total };
+  },
 };
 
 function scheduleReconnect() {
