@@ -171,6 +171,55 @@ server.addTool({
   },
 });
 
+// DOM enhanced helpers
+server.addTool({
+  name: "dom.queryAll",
+  description: "查询选择器匹配的节点（返回 tag/id/class/text/href/value 与 rect）",
+  parameters: z.object({
+    tabId: z.number().nullable().optional(),
+    selector: z.string().optional(),
+    limit: z.number().optional(),
+  }),
+  execute: async ({ tabId, selector, limit }) => {
+    const resp = await sendToExtension({ type: "dom.dispatch", payload: { tabId, message: { type: 'dom.queryAll', selector, limit } } });
+    if (resp.ok === false) throw new Error(resp.error || "dom.queryAll_failed");
+    return resp.result?.nodes ?? [];
+  },
+});
+
+server.addTool({
+  name: "dom.clickByText",
+  description: "根据可见文本点击元素（可选选择器、是否精确匹配、选择第 n 个）",
+  parameters: z.object({
+    tabId: z.number().nullable().optional(),
+    text: z.string(),
+    selector: z.string().optional(),
+    exact: z.boolean().optional(),
+    nth: z.number().optional(),
+  }),
+  execute: async ({ tabId, text, selector, exact, nth }) => {
+    const resp = await sendToExtension({ type: "dom.dispatch", payload: { tabId, message: { type: 'dom.clickByText', text, selector, exact, nth } } });
+    if (resp.ok === false) throw new Error(resp.error || "dom.clickByText_failed");
+    return resp.result ?? { ok: false };
+  },
+});
+
+server.addTool({
+  name: "dom.fillByLabel",
+  description: "根据 label 文本填充输入框（支持精确/模糊）",
+  parameters: z.object({
+    tabId: z.number().nullable().optional(),
+    label: z.string(),
+    value: z.string(),
+    exact: z.boolean().optional(),
+  }),
+  execute: async ({ tabId, label, value, exact }) => {
+    const resp = await sendToExtension({ type: "dom.dispatch", payload: { tabId, message: { type: 'dom.fillByLabel', label, value, exact } } });
+    if (resp.ok === false) throw new Error(resp.error || "dom.fillByLabel_failed");
+    return resp.result ?? { ok: false };
+  },
+});
+
 // Bookmarks tools
 server.addTool({
   name: "bookmarks.create",

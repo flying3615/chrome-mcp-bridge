@@ -28,6 +28,79 @@
             window.scrollTo({ top: msg.top ?? 0, left: msg.left ?? 0, behavior: msg.smooth ? 'smooth' : 'auto' });
             return sendResponse({ ok: true });
           }
+          case 'dom.queryAll': {
+            const selector: string = msg.selector || '*';
+            const limit: number = typeof msg.limit === 'number' ? msg.limit : 50;
+            const nodes = Array.from(document.querySelectorAll(selector)).slice(0, limit);
+            const infos = nodes.map((el: Element) => {
+              const rect = (el as HTMLElement).getBoundingClientRect?.() || { x: 0, y: 0, width: 0, height: 0 };
+              const tag = el.tagName.toLowerCase();
+              const id = (el as HTMLElement).id || null;
+              const className = (el as HTMLElement).className || '';
+              const text = (el as HTMLElement).innerText?.trim?.() || '';
+              const href = (el as HTMLAnchorElement).href || null;
+              const value = (el as HTMLInputElement | HTMLTextAreaElement).value ?? null;
+              return { tag, id, class: className, text, href, value, rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height } };
+            });
+            return sendResponse({ ok: true, nodes: infos });
+          }
+          case 'dom.clickByText': {
+            const text: string = msg.text || '';
+            const selector: string = msg.selector || '*';
+            const exact: boolean = !!msg.exact;
+            const nth: number = typeof msg.nth === 'number' ? msg.nth : 0;
+            const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+            const targetText = norm(String(text));
+            const candidates = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
+            const visible = (el: HTMLElement) => {
+              const style = getComputedStyle(el);
+              if (style.visibility === 'hidden' || style.display === 'none') return false;
+              const rect = el.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0;
+            };
+            const matched: HTMLElement[] = [];
+            for (const el of candidates) {
+              try {
+                const t = norm(el.innerText || '');
+                if (!t) continue;
+                if ((exact && t === targetText) || (!exact && t.includes(targetText))) {
+                  if (visible(el)) matched.push(el);
+                }
+              } catch {}
+            }
+            const target = matched[nth] || null;
+            (target as any)?.click?.();
+            return sendResponse({ ok: !!target, matched: matched.length, clickedIndex: nth });
+          }
+          case 'dom.fillByLabel': {
+            const labelText: string = msg.label || '';
+            const value: string = msg.value ?? '';
+            const exact: boolean = !!msg.exact;
+            const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+            const labels = Array.from(document.querySelectorAll('label')) as HTMLLabelElement[];
+            const targetLabel = labels.find(l => {
+              const t = norm(l.innerText || '');
+              return exact ? (t === norm(labelText)) : t.includes(norm(labelText));
+            });
+            let input: HTMLInputElement | HTMLTextAreaElement | null = null;
+            if (targetLabel) {
+              const id = targetLabel.getAttribute('for');
+              if (id) {
+                const el = document.getElementById(id) as any;
+                if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) input = el;
+              }
+              if (!input) {
+                const el = targetLabel.querySelector('input,textarea') as any;
+                if (el) input = el;
+              }
+            }
+            if (!input) return sendResponse({ ok: false, reason: 'not_found' });
+            (input as any).focus?.();
+            (input as any).value = value;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            return sendResponse({ ok: true });
+          }
           case 'dom.readHTML': {
             const html = document.documentElement?.outerHTML ?? '';
             if (msg.includeDoctype) {
